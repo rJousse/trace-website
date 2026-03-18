@@ -1589,9 +1589,18 @@
                 document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
                 document.querySelector('.nav-link[data-section="' + sectionId + '"]')?.classList.add('active');
                 document.getElementById(sectionId)?.classList.add('active');
-                // Charger les données si Firebase est prêt, sinon Firebase chargera au démarrage
-                if (sectionId === 'actualites' && window._loadArticles) window._loadArticles();
-                else if (sectionId === 'sondages' && window._loadPolls) window._loadPolls();
+
+                if (sectionId === 'actualites' || sectionId === 'sondages') {
+                    // Appeler immédiatement si Firebase est déjà prêt
+                    if (sectionId === 'actualites' && window._loadArticles) { window._loadArticles(); return; }
+                    if (sectionId === 'sondages' && window._loadPolls) { window._loadPolls(); return; }
+                    // Sinon attendre que Firebase charge (module async CDN)
+                    var tid = setInterval(function () {
+                        if (sectionId === 'actualites' && window._loadArticles) { clearInterval(tid); window._loadArticles(); }
+                        else if (sectionId === 'sondages' && window._loadPolls) { clearInterval(tid); window._loadPolls(); }
+                    }, 100);
+                    setTimeout(function () { clearInterval(tid); }, 15000);
+                }
             }
             window.switchSection = switchSection;
 
