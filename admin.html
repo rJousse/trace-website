@@ -860,14 +860,30 @@ let tempOptions = [];
 function renderOptions() {
     const list = document.getElementById('options-list');
     list.innerHTML = tempOptions.map((o, i) => `
-        <div class="option-row">
-            <input type="text" class="form-input" value="${o.label}" placeholder="Option ${i+1}"
-                oninput="tempOptions[${i}].label = this.value">
+        <div class="option-row" data-index="${i}">
+            <input type="text" class="form-input option-input" value="${o.label}" placeholder="Option ${i+1}">
             <button class="btn-remove-option" onclick="removeOption(${i})">×</button>
         </div>`).join('');
 }
 
-window.removeOption = (i) => { tempOptions.splice(i, 1); renderOptions(); };
+function getOptionsFromDOM() {
+    return Array.from(document.querySelectorAll('#options-list .option-row')).map((row) => {
+        const i = parseInt(row.dataset.index);
+        return {
+            id: tempOptions[i]?.id || ('opt_' + Date.now() + '_' + i),
+            label: row.querySelector('.option-input').value.trim()
+        };
+    }).filter(o => o.label);
+}
+
+window.removeOption = (i) => {
+    // Sync labels from DOM before removing
+    document.querySelectorAll('#options-list .option-row').forEach((row, idx) => {
+        if (tempOptions[idx]) tempOptions[idx].label = row.querySelector('.option-input').value;
+    });
+    tempOptions.splice(i, 1);
+    renderOptions();
+};
 
 document.getElementById('btn-add-option').addEventListener('click', () => {
     tempOptions.push({ id: 'opt_' + Date.now() + '_' + tempOptions.length, label: '' });
@@ -902,7 +918,7 @@ document.getElementById('cancel-poll').addEventListener('click', () => document.
 document.getElementById('save-poll').addEventListener('click', async () => {
     const title = document.getElementById('poll-title').value.trim();
     if (!title) { alert('Titre requis.'); return; }
-    const options = tempOptions.filter(o => o.label.trim());
+    const options = getOptionsFromDOM();
     if (options.length < 2) { alert('Au moins 2 options requises.'); return; }
 
     const id = document.getElementById('poll-id').value;
