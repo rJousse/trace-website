@@ -1801,7 +1801,7 @@
                                     ${sizeInputs}
                                 </div>`;
                         }
-                        optionsHtml += `<button class="poll-submit-btn" onclick="submitPoll('${pollId}', ${needsRegistration}, ${JSON.stringify(p.sizeFields||{})})">Voter</button>`;
+                        optionsHtml += `<button class="poll-submit-btn" onclick="submitPoll('${pollId}', ${needsRegistration}, ${JSON.stringify(p.sizeFields||{}).replace(/"/g, '&quot;')})">Voter</button>`;
                     }
 
                     grid.innerHTML += `
