@@ -1358,7 +1358,7 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-        import { getFirestore, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+        import { getFirestore, collection, doc, query, where, orderBy, getDocs, addDoc, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyB-d2T6DGWVu9vkJhciHAqfCYHXeLPHE58",
@@ -1433,12 +1433,14 @@
                     const needsRegistration = p.requiresRegistration === true;
                     const hasVoted = !!voted[pollId];
 
-                    // Compter les votes par option
+                    // Lire les compteurs stockés directement sur le poll
+                    const voteCounts = p.voteCounts || {};
                     const counts = {};
-                    p.options.forEach(o => counts[o.id] = 0);
-                    const rSnap = await getDocs(query(collection(db, 'responses'), where('pollId', '==', pollId)));
                     let total = 0;
-                    rSnap.forEach(r => { const d = r.data(); if (counts[d.optionId] !== undefined) { counts[d.optionId]++; total++; } });
+                    p.options.forEach(o => {
+                        counts[o.id] = voteCounts[o.id] || 0;
+                        total += counts[o.id];
+                    });
 
                     let badgeClass = closed ? 'closed' : (needsRegistration ? 'registration' : 'vote');
                     let badgeLabel = closed ? 'Fermé' : (needsRegistration ? 'Inscription requise' : 'Vote libre');
@@ -1512,6 +1514,10 @@
                     optionId: selected.value,
                     ...(needsRegistration && { firstName, lastName, email }),
                     createdAt: serverTimestamp()
+                });
+                // Incrémenter le compteur sur le poll (lisible sans auth)
+                await updateDoc(doc(db, 'polls', pollId), {
+                    [`voteCounts.${selected.value}`]: increment(1)
                 });
                 const voted = JSON.parse(localStorage.getItem('trc_voted') || '{}');
                 voted[pollId] = true;
