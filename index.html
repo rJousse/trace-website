@@ -1785,6 +1785,7 @@
         let calEvents = {}; // { 'YYYY-MM-DD': [{pollId, title}] }
 
         async function loadCalendarEvents() {
+          try {
             const snap = await getDocs(query(
                 collection(db, 'polls'),
                 where('published', '==', true)
@@ -1810,6 +1811,14 @@
             }
             renderCalendar('cal-grid', 'cal-title');
             renderCalendar('home-cal-grid', 'home-cal-title');
+          } catch(e) {
+            console.error('Erreur calendrier', e);
+            const msg = `<p style="color:rgba(255,255,255,0.5);text-align:center;padding:20px 0">Aucun évènement prévu pour le moment.</p>`;
+            const projCal = document.querySelector('#projets .calendar-wrap');
+            const homeCal = document.getElementById('home-calendar-wrap');
+            if (projCal) projCal.innerHTML = msg;
+            if (homeCal) homeCal.innerHTML = msg;
+          }
         }
 
         function renderCalendar(gridId = 'cal-grid', titleId = 'cal-title') {
@@ -1895,16 +1904,11 @@
         document.getElementById('home-cal-prev')?.addEventListener('click', () => calNav(-1));
         document.getElementById('home-cal-next')?.addEventListener('click', () => calNav(1));
 
-        // Les modules sont différés — le DOM est prêt à l'exécution, pas besoin de DOMContentLoaded
-        loadCalendarEvents();
+        // Exposer au script de navigation (non-module)
+        window._loadArticles = loadArticles;
+        window._loadPolls    = loadPolls;
 
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                const s = link.getAttribute('data-section');
-                if (s === 'actualites') loadArticles();
-                if (s === 'sondages') loadPolls();
-            });
-        });
+        loadCalendarEvents();
     </script>
 
     <script>
@@ -1929,6 +1933,10 @@
             if (targetSection) {
                 targetSection.classList.add('active');
             }
+
+            // Charger les données dynamiques
+            if (sectionId === 'actualites' && window._loadArticles) window._loadArticles();
+            if (sectionId === 'sondages'   && window._loadPolls)    window._loadPolls();
         }
 
         // Navigation depuis la navbar
