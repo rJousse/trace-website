@@ -1139,26 +1139,29 @@
         }
 
         .cal-day.has-event {
-            background: rgba(255,255,255,0.22);
+            background: rgba(120, 220, 120, 0.35);
             color: white;
             font-weight: 700;
             cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.4);
+            border: 1.5px solid rgba(140, 240, 140, 0.7);
+            box-shadow: 0 0 10px rgba(100, 220, 100, 0.25);
         }
 
         .cal-day.has-event:hover {
-            background: rgba(255,255,255,0.38);
+            background: rgba(120, 220, 120, 0.55);
+            border-color: rgba(160, 255, 160, 0.9);
             transform: scale(1.12);
             z-index: 2;
+            box-shadow: 0 0 16px rgba(100, 220, 100, 0.45);
         }
 
         .cal-day.has-event::after {
             content: '';
             position: absolute;
-            bottom: 5px;
-            width: 4px;
-            height: 4px;
-            background: white;
+            bottom: 4px;
+            width: 5px;
+            height: 5px;
+            background: rgba(160, 255, 160, 0.9);
             border-radius: 50%;
         }
 
@@ -1898,6 +1901,15 @@
                 if (homeCal) homeCal.innerHTML = noEventsMsg;
                 return;
             }
+
+            // Naviguer vers le mois du prochain évènement futur (ou passé le plus récent)
+            const today = new Date();
+            const sortedKeys = Object.keys(calEvents).sort();
+            const nextKey = sortedKeys.find(k => k >= today.toISOString().split('T')[0]) || sortedKeys[sortedKeys.length - 1];
+            const [y, m] = nextKey.split('-').map(Number);
+            calYear = y;
+            calMonth = m - 1;
+
             renderCalendar('cal-grid', 'cal-title');
             renderCalendar('home-cal-grid', 'home-cal-title');
           } catch(e) {
