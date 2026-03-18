@@ -1892,7 +1892,6 @@
 
             const noEventsMsg = `<p style="color:rgba(255,255,255,0.6);text-align:center;padding:20px 0">Aucun évènement prévu pour le moment.</p>`;
             if (Object.keys(calEvents).length === 0) {
-                document.getElementById('cal-grid')?.closest('.calendar-wrap')?.innerHTML && (document.getElementById('home-cal-grid')?.closest('.calendar-wrap').innerHTML = noEventsMsg);
                 const projCal = document.querySelector('#projets .calendar-wrap');
                 if (projCal) projCal.innerHTML = noEventsMsg;
                 const homeCal = document.getElementById('home-calendar-wrap');
