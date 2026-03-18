@@ -1581,10 +1581,103 @@
         <img src="" alt="" id="modalImage">
     </div>
 
-    <!-- Firebase compat SDK (scripts bloquants = pas de race condition avec la navigation) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <!-- Navigation (aucune dépendance CDN — s'exécute immédiatement) -->
     <script>
+        (function () {
+            function switchSection(sectionId) {
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.querySelector('.nav-link[data-section="' + sectionId + '"]')?.classList.add('active');
+                document.getElementById(sectionId)?.classList.add('active');
+                // Charger les données si Firebase est prêt, sinon Firebase chargera au démarrage
+                if (sectionId === 'actualites' && window._loadArticles) window._loadArticles();
+                else if (sectionId === 'sondages' && window._loadPolls) window._loadPolls();
+            }
+            window.switchSection = switchSection;
+
+            document.querySelectorAll('.nav-link').forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    switchSection(link.getAttribute('data-section'));
+                });
+            });
+
+            document.querySelectorAll('.home-card').forEach(function (card) {
+                card.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    switchSection(card.getAttribute('data-section'));
+                });
+            });
+
+            // Modal photo
+            var photoModal = document.getElementById('photoModal');
+            var modalImage = document.getElementById('modalImage');
+            var closeModal = document.getElementById('closeModal');
+            var allImages = [];
+            var currentModalIndex = 0;
+
+            function openModal(index) {
+                currentModalIndex = index;
+                modalImage.src = allImages[currentModalIndex].src;
+                modalImage.alt = allImages[currentModalIndex].alt;
+                photoModal.classList.add('active');
+            }
+            window.openModal = openModal;
+
+            function navigateModal(direction) {
+                currentModalIndex = (currentModalIndex + direction + allImages.length) % allImages.length;
+                modalImage.src = allImages[currentModalIndex].src;
+                modalImage.alt = allImages[currentModalIndex].alt;
+            }
+            window.navigateModal = navigateModal;
+
+            closeModal.addEventListener('click', function () { photoModal.classList.remove('active'); });
+            photoModal.addEventListener('click', function (e) { if (e.target === photoModal) photoModal.classList.remove('active'); });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && photoModal.classList.contains('active')) photoModal.classList.remove('active');
+            });
+
+            // Carrousel
+            var currentPreviewIndices = [0, 0];
+            window.changePreview = function (galleryIndex, direction, event) {
+                event.stopPropagation();
+                var card = document.querySelector('[data-gallery="' + galleryIndex + '"]');
+                var track = card.querySelector('.photo-carousel-track');
+                var slides = card.querySelectorAll('.photo-carousel-slide');
+                var indicators = card.querySelectorAll('.photo-carousel-indicator');
+                currentPreviewIndices[galleryIndex] = (currentPreviewIndices[galleryIndex] + direction + slides.length) % slides.length;
+                track.style.transform = 'translateX(-' + (currentPreviewIndices[galleryIndex] * 100) + '%)';
+                indicators.forEach(function (ind, idx) { ind.classList.toggle('active', idx === currentPreviewIndices[galleryIndex]); });
+            };
+            window.goToPreview = function (galleryIndex, slideIndex, event) {
+                event.stopPropagation();
+                var card = document.querySelector('[data-gallery="' + galleryIndex + '"]');
+                var track = card.querySelector('.photo-carousel-track');
+                var indicators = card.querySelectorAll('.photo-carousel-indicator');
+                currentPreviewIndices[galleryIndex] = slideIndex;
+                track.style.transform = 'translateX(-' + (slideIndex * 100) + '%)';
+                indicators.forEach(function (ind, idx) { ind.classList.toggle('active', idx === slideIndex); });
+            };
+
+            document.addEventListener('DOMContentLoaded', function () {
+                allImages = Array.from(document.querySelectorAll('.photo-carousel-slide img'));
+                document.querySelectorAll('.photo-card').forEach(function (card) {
+                    card.addEventListener('click', function (e) {
+                        if (e.target.closest('.photo-carousel-btn') || e.target.closest('.photo-carousel-indicator')) return;
+                        var galleryIndex = parseInt(card.getAttribute('data-gallery'));
+                        var img = card.querySelectorAll('.photo-carousel-slide img')[currentPreviewIndices[galleryIndex]];
+                        openModal(parseInt(img.getAttribute('data-index')));
+                    });
+                });
+            });
+        })();
+    </script>
+
+    <!-- Firebase SDK (module deferré — chargé après le DOM) -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getFirestore, collection, doc, query, where, getDocs, addDoc, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
         const firebaseConfig = {
             apiKey: "AIzaSyB-d2T6DGWVu9vkJhciHAqfCYHXeLPHE58",
             authDomain: "trace-running-club.firebaseapp.com",
@@ -1594,14 +1687,14 @@
             appId: "1:277171805036:web:cc1810775ecd50a677b149"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
         // ---- Articles ----
         async function loadArticles() {
             const grid = document.getElementById('articles-grid');
             try {
-                const snap = await db.collection('articles').where('published', '==', true).get();
+                const snap = await getDocs(query(collection(db, 'articles'), where('published', '==', true)));
                 const docs = snap.docs.sort((a, b) => (b.data().date?.seconds || 0) - (a.data().date?.seconds || 0));
                 if (docs.length === 0) {
                     grid.innerHTML = `<div class="empty-state"><span class="empty-icon">📰</span>Aucun article pour le moment.</div>`;
@@ -1634,7 +1727,7 @@
         async function loadPolls() {
             const grid = document.getElementById('polls-grid');
             try {
-                const snap = await db.collection('polls').where('published', '==', true).get();
+                const snap = await getDocs(query(collection(db, 'polls'), where('published', '==', true)));
                 const pollDocs = snap.docs.sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0));
                 if (pollDocs.length === 0) {
                     grid.innerHTML = `<div class="empty-state"><span class="empty-icon">📊</span>Aucun sondage actif pour le moment.</div>`;
@@ -1749,15 +1842,15 @@
             if (btn) { btn.disabled = true; btn.textContent = 'Envoi...'; }
 
             try {
-                await db.collection('responses').add({
+                await addDoc(collection(db, 'responses'), {
                     pollId,
                     optionId: selected.value,
                     ...extraData,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    createdAt: serverTimestamp()
                 });
                 // Incrémenter le compteur sur le poll (lisible sans auth)
-                await db.collection('polls').doc(pollId).update({
-                    [`voteCounts.${selected.value}`]: firebase.firestore.FieldValue.increment(1)
+                await updateDoc(doc(db, 'polls', pollId), {
+                    [`voteCounts.${selected.value}`]: increment(1)
                 });
                 const voted = JSON.parse(localStorage.getItem('trc_voted') || '{}');
                 voted[pollId] = true;
@@ -1777,7 +1870,7 @@
 
         async function loadCalendarEvents() {
           try {
-            const snap = await db.collection('polls').where('published', '==', true).get();
+            const snap = await getDocs(query(collection(db, 'polls'), where('published', '==', true)));
             calEvents = {};
             snap.forEach(d => {
                 const p = d.data();
@@ -1892,168 +1985,16 @@
         document.getElementById('home-cal-prev')?.addEventListener('click', () => calNav(-1));
         document.getElementById('home-cal-next')?.addEventListener('click', () => calNav(1));
 
+        // Exposer les fonctions de données à la navigation
+        window._loadArticles = loadArticles;
+        window._loadPolls = loadPolls;
+
+        // Si l'utilisateur a navigué avant que Firebase soit prêt, charger maintenant
+        const activeId = document.querySelector('.section.active')?.id;
+        if (activeId === 'actualites') loadArticles();
+        else if (activeId === 'sondages') loadPolls();
+
         loadCalendarEvents();
-
-        // Navigation entre les sections
-        const navLinks = document.querySelectorAll('.nav-link');
-        const sections = document.querySelectorAll('.section');
-        const homeCards = document.querySelectorAll('.home-card');
-
-        // Fonction pour changer de section
-        function switchSection(sectionId) {
-            navLinks.forEach(l => l.classList.remove('active'));
-            sections.forEach(s => s.classList.remove('active'));
-
-            // Activer le bon lien de navigation
-            const targetLink = document.querySelector(`.nav-link[data-section="${sectionId}"]`);
-            if (targetLink) {
-                targetLink.classList.add('active');
-            }
-
-            // Afficher la section
-            const targetSection = document.getElementById(sectionId);
-            if (targetSection) {
-                targetSection.classList.add('active');
-            }
-
-            // Charger les données dynamiques
-            if (sectionId === 'actualites') loadArticles();
-            else if (sectionId === 'sondages') loadPolls();
-        }
-
-        // Navigation depuis la navbar
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const sectionId = link.getAttribute('data-section');
-                switchSection(sectionId);
-            });
-        });
-
-        // Navigation depuis les cartes home
-        homeCards.forEach(card => {
-            card.addEventListener('click', (e) => {
-                e.preventDefault();
-                const sectionId = card.getAttribute('data-section');
-                switchSection(sectionId);
-            });
-        });
-
-        // Modal photo en grand
-        const photoCards = document.querySelectorAll('.photo-card img');
-        const photoModal = document.getElementById('photoModal');
-        const modalImage = document.getElementById('modalImage');
-        const closeModal = document.getElementById('closeModal');
-
-        photoCards.forEach(img => {
-            img.addEventListener('click', (e) => {
-                e.stopPropagation();
-                modalImage.src = img.src;
-                modalImage.alt = img.alt;
-                photoModal.classList.add('active');
-            });
-        });
-
-        closeModal.addEventListener('click', () => {
-            photoModal.classList.remove('active');
-        });
-
-        photoModal.addEventListener('click', (e) => {
-            if (e.target === photoModal) {
-                photoModal.classList.remove('active');
-            }
-        });
-
-        // Fermer avec la touche Échap
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && photoModal.classList.contains('active')) {
-                photoModal.classList.remove('active');
-            }
-        });
-
-        // Carrousel preview
-        let currentPreviewIndices = [0, 0]; // Pour chaque galerie
-
-        function changePreview(galleryIndex, direction, event) {
-            event.stopPropagation();
-            const card = document.querySelector(`[data-gallery="${galleryIndex}"]`);
-            const track = card.querySelector('.photo-carousel-track');
-            const slides = card.querySelectorAll('.photo-carousel-slide');
-            const indicators = card.querySelectorAll('.photo-carousel-indicator');
-
-            currentPreviewIndices[galleryIndex] += direction;
-
-            if (currentPreviewIndices[galleryIndex] < 0) {
-                currentPreviewIndices[galleryIndex] = slides.length - 1;
-            } else if (currentPreviewIndices[galleryIndex] >= slides.length) {
-                currentPreviewIndices[galleryIndex] = 0;
-            }
-
-            track.style.transform = `translateX(-${currentPreviewIndices[galleryIndex] * 100}%)`;
-
-            indicators.forEach((ind, idx) => {
-                ind.classList.toggle('active', idx === currentPreviewIndices[galleryIndex]);
-            });
-        }
-
-        function goToPreview(galleryIndex, slideIndex, event) {
-            event.stopPropagation();
-            const card = document.querySelector(`[data-gallery="${galleryIndex}"]`);
-            const track = card.querySelector('.photo-carousel-track');
-            const indicators = card.querySelectorAll('.photo-carousel-indicator');
-
-            currentPreviewIndices[galleryIndex] = slideIndex;
-            track.style.transform = `translateX(-${slideIndex * 100}%)`;
-
-            indicators.forEach((ind, idx) => {
-                ind.classList.toggle('active', idx === slideIndex);
-            });
-        }
-
-        // Modifier le système de modale pour supporter la navigation
-        let allImages = [];
-        let currentModalIndex = 0;
-
-        document.addEventListener('DOMContentLoaded', () => {
-            // Collecter toutes les images
-            allImages = Array.from(document.querySelectorAll('.photo-carousel-slide img'));
-
-            // Clic sur les cartes pour ouvrir la modale
-            document.querySelectorAll('.photo-card').forEach(card => {
-                card.addEventListener('click', (e) => {
-                    if (e.target.closest('.photo-carousel-btn') || e.target.closest('.photo-carousel-indicator')) {
-                        return;
-                    }
-
-                    const galleryIndex = parseInt(card.getAttribute('data-gallery'));
-                    const currentSlide = currentPreviewIndices[galleryIndex];
-                    const img = card.querySelectorAll('.photo-carousel-slide img')[currentSlide];
-                    const globalIndex = parseInt(img.getAttribute('data-index'));
-
-                    openModal(globalIndex);
-                });
-            });
-        });
-
-        function openModal(index) {
-            currentModalIndex = index;
-            modalImage.src = allImages[currentModalIndex].src;
-            modalImage.alt = allImages[currentModalIndex].alt;
-            photoModal.classList.add('active');
-        }
-
-        function navigateModal(direction) {
-            currentModalIndex += direction;
-
-            if (currentModalIndex < 0) {
-                currentModalIndex = allImages.length - 1;
-            } else if (currentModalIndex >= allImages.length) {
-                currentModalIndex = 0;
-            }
-
-            modalImage.src = allImages[currentModalIndex].src;
-            modalImage.alt = allImages[currentModalIndex].alt;
-        }
     </script>
 </body>
 
