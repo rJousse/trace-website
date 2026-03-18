@@ -1684,6 +1684,9 @@
         })();
     </script>
 
+    <!-- EmailJS (confirmation d'inscription) -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
     <!-- Firebase SDK (module deferré — chargé après le DOM) -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -1700,6 +1703,18 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // ---- Configuration EmailJS (mail de confirmation d'inscription) ----
+        // 1. Crée un compte sur https://www.emailjs.com (gratuit jusqu'à 200 mails/mois)
+        // 2. Ajoute un service email (Gmail, Outlook…) → copie le Service ID
+        // 3. Crée un template avec les variables : {{to_name}}, {{to_email}}, {{poll_title}}, {{option_label}}
+        // 4. Remplis les 3 constantes ci-dessous
+        const EMAILJS_PUBLIC_KEY  = 'VOTRE_PUBLIC_KEY';   // Account > API Keys
+        const EMAILJS_SERVICE_ID  = 'VOTRE_SERVICE_ID';   // Email Services
+        const EMAILJS_TEMPLATE_ID = 'VOTRE_TEMPLATE_ID';  // Email Templates
+        if (EMAILJS_PUBLIC_KEY !== 'VOTRE_PUBLIC_KEY') {
+            emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+        }
 
         // ---- Articles ----
         async function loadArticles() {
@@ -1866,6 +1881,19 @@
                 const voted = JSON.parse(localStorage.getItem('trc_voted') || '{}');
                 voted[pollId] = true;
                 localStorage.setItem('trc_voted', JSON.stringify(voted));
+
+                // Mail de confirmation si inscription requise et EmailJS configuré
+                if (needsRegistration && extraData.email && EMAILJS_PUBLIC_KEY !== 'VOTRE_PUBLIC_KEY') {
+                    const pollTitle = document.querySelector(`.poll-card[data-poll-id="${pollId}"] .poll-card-title`)?.textContent || '';
+                    const optionLabel = document.querySelector(`input[name="poll_${pollId}"]:checked`)?.closest('.poll-option')?.querySelector('.poll-option-label')?.textContent || selected.value;
+                    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                        to_name:     extraData.firstName,
+                        to_email:    extraData.email,
+                        poll_title:  pollTitle,
+                        option_label: optionLabel,
+                    }).catch(e => console.warn('Email non envoyé :', e));
+                }
+
                 loadPolls();
             } catch (e) {
                 console.error('Erreur vote', e);
