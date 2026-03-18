@@ -1895,17 +1895,14 @@
         document.getElementById('home-cal-prev')?.addEventListener('click', () => calNav(-1));
         document.getElementById('home-cal-next')?.addEventListener('click', () => calNav(1));
 
-        // Charger au changement de section
-        document.addEventListener('DOMContentLoaded', () => {
-            // Calendrier dès l'accueil
-            loadCalendarEvents();
+        // Les modules sont différés — le DOM est prêt à l'exécution, pas besoin de DOMContentLoaded
+        loadCalendarEvents();
 
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.addEventListener('click', () => {
-                    const s = link.getAttribute('data-section');
-                    if (s === 'actualites') loadArticles();
-                    if (s === 'sondages') loadPolls();
-                });
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                const s = link.getAttribute('data-section');
+                if (s === 'actualites') loadArticles();
+                if (s === 'sondages') loadPolls();
             });
         });
     </script>
