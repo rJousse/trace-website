@@ -1581,11 +1581,10 @@
         <img src="" alt="" id="modalImage">
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-        import { getFirestore, collection, doc, query, where, orderBy, getDocs, addDoc, updateDoc, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-
+    <!-- Firebase compat SDK (scripts bloquants = pas de race condition avec la navigation) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script>
         const firebaseConfig = {
             apiKey: "AIzaSyB-d2T6DGWVu9vkJhciHAqfCYHXeLPHE58",
             authDomain: "trace-running-club.firebaseapp.com",
@@ -1595,25 +1594,21 @@
             appId: "1:277171805036:web:cc1810775ecd50a677b149"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
         // ---- Articles ----
         async function loadArticles() {
             const grid = document.getElementById('articles-grid');
             try {
-                const q = query(
-                    collection(db, 'articles'),
-                    where('published', '==', true),
-                    orderBy('date', 'desc')
-                );
-                const snap = await getDocs(q);
-                if (snap.empty) {
+                const snap = await db.collection('articles').where('published', '==', true).get();
+                const docs = snap.docs.sort((a, b) => (b.data().date?.seconds || 0) - (a.data().date?.seconds || 0));
+                if (docs.length === 0) {
                     grid.innerHTML = `<div class="empty-state"><span class="empty-icon">📰</span>Aucun article pour le moment.</div>`;
                     return;
                 }
                 grid.innerHTML = '';
-                snap.forEach(doc => {
+                docs.forEach(doc => {
                     const a = doc.data();
                     const date = a.date?.toDate ? a.date.toDate().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
                     const imgHtml = a.photos && a.photos.length > 0
@@ -1639,20 +1634,16 @@
         async function loadPolls() {
             const grid = document.getElementById('polls-grid');
             try {
-                const q = query(
-                    collection(db, 'polls'),
-                    where('published', '==', true),
-                    orderBy('createdAt', 'desc')
-                );
-                const snap = await getDocs(q);
-                if (snap.empty) {
+                const snap = await db.collection('polls').where('published', '==', true).get();
+                const pollDocs = snap.docs.sort((a, b) => (b.data().createdAt?.seconds || 0) - (a.data().createdAt?.seconds || 0));
+                if (pollDocs.length === 0) {
                     grid.innerHTML = `<div class="empty-state"><span class="empty-icon">📊</span>Aucun sondage actif pour le moment.</div>`;
                     return;
                 }
                 grid.innerHTML = '';
                 const voted = JSON.parse(localStorage.getItem('trc_voted') || '{}');
 
-                for (const docSnap of snap.docs) {
+                for (const docSnap of pollDocs) {
                     const p = docSnap.data();
                     const pollId = docSnap.id;
                     const closed = p.closed === true;
@@ -1758,15 +1749,15 @@
             if (btn) { btn.disabled = true; btn.textContent = 'Envoi...'; }
 
             try {
-                await addDoc(collection(db, 'responses'), {
+                await db.collection('responses').add({
                     pollId,
                     optionId: selected.value,
                     ...extraData,
-                    createdAt: serverTimestamp()
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 // Incrémenter le compteur sur le poll (lisible sans auth)
-                await updateDoc(doc(db, 'polls', pollId), {
-                    [`voteCounts.${selected.value}`]: increment(1)
+                await db.collection('polls').doc(pollId).update({
+                    [`voteCounts.${selected.value}`]: firebase.firestore.FieldValue.increment(1)
                 });
                 const voted = JSON.parse(localStorage.getItem('trc_voted') || '{}');
                 voted[pollId] = true;
@@ -1786,10 +1777,7 @@
 
         async function loadCalendarEvents() {
           try {
-            const snap = await getDocs(query(
-                collection(db, 'polls'),
-                where('published', '==', true)
-            ));
+            const snap = await db.collection('polls').where('published', '==', true).get();
             calEvents = {};
             snap.forEach(d => {
                 const p = d.data();
@@ -1904,21 +1892,6 @@
         document.getElementById('home-cal-prev')?.addEventListener('click', () => calNav(-1));
         document.getElementById('home-cal-next')?.addEventListener('click', () => calNav(1));
 
-        // Exposer au script de navigation (non-module)
-        window._loadArticles = loadArticles;
-        window._loadPolls    = loadPolls;
-
-        // Exécuter la section mise en attente pendant le chargement du module
-        const pending = window._pendingSectionLoad;
-        if (pending === 'actualites') loadArticles();
-        else if (pending === 'sondages') loadPolls();
-        window._pendingSectionLoad = null;
-
-        // Charger aussi si on est déjà sur une section dynamique au démarrage
-        const activeId = document.querySelector('.section.active')?.id;
-        if (activeId === 'actualites') loadArticles();
-        else if (activeId === 'sondages') loadPolls();
-
         loadCalendarEvents();
     </script>
 
@@ -1945,15 +1918,9 @@
                 targetSection.classList.add('active');
             }
 
-            // Charger les données dynamiques (module peut ne pas être prêt encore)
-            if (sectionId === 'actualites') {
-                if (window._loadArticles) window._loadArticles();
-                else window._pendingSectionLoad = 'actualites';
-            }
-            if (sectionId === 'sondages') {
-                if (window._loadPolls) window._loadPolls();
-                else window._pendingSectionLoad = 'sondages';
-            }
+            // Charger les données dynamiques
+            if (sectionId === 'actualites') loadArticles();
+            else if (sectionId === 'sondages') loadPolls();
         }
 
         // Navigation depuis la navbar
