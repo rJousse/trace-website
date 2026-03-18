@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trace Running Club</title>
+    <link rel="icon" type="image/jpeg" href="Logo-trace.jpg">
     <style>
         /* Photo Gallery avec carrousel */
         .gallery {
@@ -1377,6 +1378,16 @@
                     </a>
                 </div>
 
+                <h3 class="calendar-section-title">Agenda</h3>
+                <div class="calendar-wrap" id="home-calendar-wrap">
+                    <div class="calendar-header">
+                        <button class="calendar-nav-btn" id="home-cal-prev">‹</button>
+                        <span class="calendar-title" id="home-cal-title"></span>
+                        <button class="calendar-nav-btn" id="home-cal-next">›</button>
+                    </div>
+                    <div class="calendar-grid" id="home-cal-grid"></div>
+                </div>
+
                 <div class="footer">
                     <h4>Site taillé au seuil comme nos mollets</h4>
                     <p>© TraceRunningClub</p>
@@ -1788,17 +1799,22 @@
                 calEvents[key].push({ pollId: d.id, title: p.title });
             });
 
+            const noEventsMsg = `<p style="color:rgba(255,255,255,0.6);text-align:center;padding:20px 0">Aucun évènement prévu pour le moment.</p>`;
             if (Object.keys(calEvents).length === 0) {
-                document.querySelector('.calendar-wrap').innerHTML =
-                    `<p style="color:rgba(255,255,255,0.6);text-align:center;padding:20px 0">Aucun évènement prévu pour le moment.</p>`;
+                document.getElementById('cal-grid')?.closest('.calendar-wrap')?.innerHTML && (document.getElementById('home-cal-grid')?.closest('.calendar-wrap').innerHTML = noEventsMsg);
+                const projCal = document.querySelector('#projets .calendar-wrap');
+                if (projCal) projCal.innerHTML = noEventsMsg;
+                const homeCal = document.getElementById('home-calendar-wrap');
+                if (homeCal) homeCal.innerHTML = noEventsMsg;
                 return;
             }
-            renderCalendar();
+            renderCalendar('cal-grid', 'cal-title');
+            renderCalendar('home-cal-grid', 'home-cal-title');
         }
 
-        function renderCalendar() {
-            const grid = document.getElementById('cal-grid');
-            const titleEl = document.getElementById('cal-title');
+        function renderCalendar(gridId = 'cal-grid', titleId = 'cal-title') {
+            const grid = document.getElementById(gridId);
+            const titleEl = document.getElementById(titleId);
             if (!grid) return;
 
             const today = new Date();
@@ -1866,26 +1882,29 @@
             setTimeout(() => clearInterval(tryScroll), 3000);
         };
 
-        document.getElementById('cal-prev')?.addEventListener('click', () => {
-            calMonth--;
-            if (calMonth < 0) { calMonth = 11; calYear--; }
-            renderCalendar();
-        });
+        function calNav(delta) {
+            calMonth += delta;
+            if (calMonth < 0)  { calMonth = 11; calYear--; }
+            if (calMonth > 11) { calMonth = 0;  calYear++; }
+            renderCalendar('cal-grid', 'cal-title');
+            renderCalendar('home-cal-grid', 'home-cal-title');
+        }
 
-        document.getElementById('cal-next')?.addEventListener('click', () => {
-            calMonth++;
-            if (calMonth > 11) { calMonth = 0; calYear++; }
-            renderCalendar();
-        });
+        document.getElementById('cal-prev')?.addEventListener('click', () => calNav(-1));
+        document.getElementById('cal-next')?.addEventListener('click', () => calNav(1));
+        document.getElementById('home-cal-prev')?.addEventListener('click', () => calNav(-1));
+        document.getElementById('home-cal-next')?.addEventListener('click', () => calNav(1));
 
         // Charger au changement de section
         document.addEventListener('DOMContentLoaded', () => {
+            // Calendrier dès l'accueil
+            loadCalendarEvents();
+
             document.querySelectorAll('.nav-link').forEach(link => {
                 link.addEventListener('click', () => {
                     const s = link.getAttribute('data-section');
                     if (s === 'actualites') loadArticles();
                     if (s === 'sondages') loadPolls();
-                    if (s === 'projets') loadCalendarEvents();
                 });
             });
         });
