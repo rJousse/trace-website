@@ -610,6 +610,10 @@
             <textarea id="poll-desc" class="form-input" placeholder="Détails supplémentaires"></textarea>
         </div>
         <div class="form-group">
+            <label>Date de l'évènement</label>
+            <input type="date" id="poll-date" class="form-input">
+        </div>
+        <div class="form-group">
             <label>Options *</label>
             <div class="options-list" id="options-list"></div>
             <button class="btn-add-option" id="btn-add-option">+ Ajouter une option</button>
@@ -844,7 +848,7 @@ function renderPolls() {
                     ${p.title}
                     <span class="badge ${status}">${label}</span>
                 </div>
-                <div class="admin-list-item-meta">${p.options?.length || 0} option(s) · ${p.requiresRegistration ? 'Inscription requise' : 'Vote libre'}</div>
+                <div class="admin-list-item-meta">${p.date ? fmt(p.date) + ' · ' : ''}${p.options?.length || 0} option(s) · ${p.requiresRegistration ? 'Inscription requise' : 'Vote libre'}</div>
             </div>
             <div class="item-actions">
                 <button class="btn-icon" title="Modifier" onclick="editPoll('${p.id}')">✏️</button>
@@ -895,6 +899,7 @@ document.getElementById('btn-new-poll').addEventListener('click', () => openPoll
 function openPollModal(p = null) {
     document.getElementById('poll-id').value = p?.id || '';
     document.getElementById('modal-poll-title').textContent = p ? 'Modifier le sondage' : 'Nouveau sondage';
+    document.getElementById('poll-date').value = p?.date ? new Date(p.date.toDate ? p.date.toDate() : p.date).toISOString().split('T')[0] : '';
     document.getElementById('poll-title').value = p?.title || '';
     document.getElementById('poll-desc').value = p?.description || '';
     document.getElementById('poll-registration').checked = !!p?.requiresRegistration;
@@ -922,9 +927,11 @@ document.getElementById('save-poll').addEventListener('click', async () => {
     if (options.length < 2) { alert('Au moins 2 options requises.'); return; }
 
     const id = document.getElementById('poll-id').value;
+    const dateVal = document.getElementById('poll-date').value;
     const data = {
         title,
         description: document.getElementById('poll-desc').value.trim(),
+        date: dateVal ? Timestamp.fromDate(new Date(dateVal)) : null,
         options: options.map(o => ({ id: o.id, label: o.label.trim() })),
         requiresRegistration: document.getElementById('poll-registration').checked,
         published: document.getElementById('poll-published').checked,

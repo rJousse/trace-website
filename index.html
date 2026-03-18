@@ -988,6 +988,146 @@
             margin-top: 10px;
         }
 
+        /* Calendrier */
+        .calendar-section-title {
+            color: white;
+            font-size: 1.3em;
+            font-weight: 700;
+            margin: 40px 0 15px;
+        }
+
+        .calendar-wrap {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 25px;
+            padding: 28px 30px;
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .calendar-title {
+            color: white;
+            font-size: 1.1em;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+
+        .calendar-nav-btn {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .calendar-nav-btn:hover { background: rgba(255,255,255,0.28); }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .cal-day-header {
+            color: rgba(255,255,255,0.45);
+            font-size: 0.72em;
+            font-weight: 600;
+            text-align: center;
+            padding: 6px 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cal-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 0.88em;
+            color: rgba(255,255,255,0.5);
+            position: relative;
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .cal-day.other-month { color: rgba(255,255,255,0.18); }
+
+        .cal-day.today {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            font-weight: 700;
+        }
+
+        .cal-day.has-event {
+            background: rgba(255,255,255,0.22);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
+
+        .cal-day.has-event:hover {
+            background: rgba(255,255,255,0.38);
+            transform: scale(1.12);
+            z-index: 2;
+        }
+
+        .cal-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .cal-tooltip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20,40,20,0.97);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 8px 13px;
+            color: white;
+            font-size: 0.8em;
+            font-weight: 500;
+            white-space: nowrap;
+            max-width: 180px;
+            white-space: normal;
+            text-align: center;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+            line-height: 1.4;
+        }
+
+        .cal-day:hover .cal-tooltip { display: block; }
+
+        @keyframes pollHighlight {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+            50% { box-shadow: 0 0 0 6px rgba(255,255,255,0.3); }
+        }
+
+        .poll-card.highlight { animation: pollHighlight 0.8s ease 2; }
+
         /* Responsive */
         @media (max-width: 768px) {
             nav {
@@ -1206,6 +1346,16 @@
                             <p>L'Ultra Trail de Bordeaux Métropole, 160kms, 1000D+, notre UTMB à nous.</p>
                         </div>
                     </div>
+                </div>
+
+                <h3 class="calendar-section-title">Agenda</h3>
+                <div class="calendar-wrap">
+                    <div class="calendar-header">
+                        <button class="calendar-nav-btn" id="cal-prev">‹</button>
+                        <span class="calendar-title" id="cal-title"></span>
+                        <button class="calendar-nav-btn" id="cal-next">›</button>
+                    </div>
+                    <div class="calendar-grid" id="cal-grid"></div>
                 </div>
 
                 <div class="gallery">
@@ -1479,7 +1629,7 @@
                     }
 
                     grid.innerHTML += `
-                        <div class="poll-card">
+                        <div class="poll-card" data-poll-id="${pollId}">
                             <span class="poll-badge ${badgeClass}">${badgeLabel}</span>
                             <div class="poll-card-title">${p.title}</div>
                             ${p.description ? `<div class="poll-card-desc">${p.description}</div>` : ''}
@@ -1530,6 +1680,109 @@
             }
         };
 
+        // ---- Calendrier ----
+        let calYear, calMonth;
+        let calEvents = {}; // { 'YYYY-MM-DD': [{pollId, title}] }
+
+        async function loadCalendarEvents() {
+            const snap = await getDocs(query(
+                collection(db, 'polls'),
+                where('published', '==', true)
+            ));
+            calEvents = {};
+            snap.forEach(d => {
+                const p = d.data();
+                if (!p.date) return;
+                const dt = p.date.toDate ? p.date.toDate() : new Date(p.date);
+                const key = dt.toISOString().split('T')[0];
+                if (!calEvents[key]) calEvents[key] = [];
+                calEvents[key].push({ pollId: d.id, title: p.title });
+            });
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('cal-grid');
+            const titleEl = document.getElementById('cal-title');
+            if (!grid) return;
+
+            const today = new Date();
+            const year = calYear ?? today.getFullYear();
+            const month = calMonth ?? today.getMonth();
+            calYear = year; calMonth = month;
+
+            titleEl.textContent = new Date(year, month, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+            const days = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+            let html = days.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            // Lundi = 0 (offset: getDay() retourne 0=dim, 1=lun...)
+            let startOffset = (firstDay.getDay() + 6) % 7;
+
+            // Jours du mois précédent
+            const prevLast = new Date(year, month, 0).getDate();
+            for (let i = startOffset - 1; i >= 0; i--) {
+                html += `<div class="cal-day other-month">${prevLast - i}</div>`;
+            }
+
+            // Jours du mois courant
+            for (let d = 1; d <= lastDay.getDate(); d++) {
+                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                const events = calEvents[dateKey];
+
+                if (events?.length) {
+                    const titles = events.map(e => e.title).join(' · ');
+                    const pollIds = events.map(e => e.pollId).join(',');
+                    html += `<div class="cal-day has-event${isToday ? ' today' : ''}" data-poll-ids="${pollIds}" onclick="goToPoll('${pollIds}')">
+                        ${d}
+                        <span class="cal-tooltip">${titles}</span>
+                    </div>`;
+                } else {
+                    html += `<div class="cal-day${isToday ? ' today' : ''}">${d}</div>`;
+                }
+            }
+
+            // Jours du mois suivant
+            const totalCells = startOffset + lastDay.getDate();
+            const remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+            for (let d = 1; d <= remaining; d++) {
+                html += `<div class="cal-day other-month">${d}</div>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        window.goToPoll = function(pollIdsStr) {
+            const firstId = pollIdsStr.split(',')[0];
+            switchSection('sondages');
+            // Attendre que les sondages soient chargés puis scroller
+            const tryScroll = setInterval(() => {
+                const card = document.querySelector(`.poll-card[data-poll-id="${firstId}"]`);
+                if (card) {
+                    clearInterval(tryScroll);
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.classList.add('highlight');
+                    setTimeout(() => card.classList.remove('highlight'), 1800);
+                }
+            }, 100);
+            setTimeout(() => clearInterval(tryScroll), 3000);
+        };
+
+        document.getElementById('cal-prev')?.addEventListener('click', () => {
+            calMonth--;
+            if (calMonth < 0) { calMonth = 11; calYear--; }
+            renderCalendar();
+        });
+
+        document.getElementById('cal-next')?.addEventListener('click', () => {
+            calMonth++;
+            if (calMonth > 11) { calMonth = 0; calYear++; }
+            renderCalendar();
+        });
+
         // Charger au changement de section
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.nav-link').forEach(link => {
@@ -1537,6 +1790,7 @@
                     const s = link.getAttribute('data-section');
                     if (s === 'actualites') loadArticles();
                     if (s === 'sondages') loadPolls();
+                    if (s === 'projets') loadCalendarEvents();
                 });
             });
         });
