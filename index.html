@@ -1617,15 +1617,22 @@
                                 </label>`;
                         });
 
-                        const regFields = needsRegistration ? `
-                            <div class="poll-registration-fields visible" id="reg_${pollId}">
-                                <input class="poll-input" id="fn_${pollId}" type="text" placeholder="Prénom *" required>
-                                <input class="poll-input" id="ln_${pollId}" type="text" placeholder="Nom *" required>
-                                <input class="poll-input" id="em_${pollId}" type="email" placeholder="Email *" required>
-                            </div>` : '';
-
-                        optionsHtml += regFields;
-                        optionsHtml += `<button class="poll-submit-btn" onclick="submitPoll('${pollId}', ${needsRegistration})">Voter</button>`;
+                        if (needsRegistration) {
+                            const sf = p.sizeFields || {};
+                            const sizeInputs = [
+                                sf.tshirt ? `<select class="poll-input" id="sz_tshirt_${pollId}"><option value="">Taille t-shirt *</option>${['XS','S','M','L','XL','XXL'].map(s=>`<option>${s}</option>`).join('')}</select>` : '',
+                                sf.short  ? `<select class="poll-input" id="sz_short_${pollId}"><option value="">Taille short *</option>${['XS','S','M','L','XL','XXL'].map(s=>`<option>${s}</option>`).join('')}</select>` : '',
+                                sf.shoes  ? `<input class="poll-input" id="sz_shoes_${pollId}" type="text" placeholder="Pointure *">` : ''
+                            ].filter(Boolean).join('');
+                            optionsHtml += `
+                                <div class="poll-registration-fields visible" id="reg_${pollId}">
+                                    <input class="poll-input" id="fn_${pollId}" type="text" placeholder="Prénom *">
+                                    <input class="poll-input" id="ln_${pollId}" type="text" placeholder="Nom *">
+                                    <input class="poll-input" id="em_${pollId}" type="email" placeholder="Email *">
+                                    ${sizeInputs}
+                                </div>`;
+                        }
+                        optionsHtml += `<button class="poll-submit-btn" onclick="submitPoll('${pollId}', ${needsRegistration}, ${JSON.stringify(p.sizeFields||{})})">Voter</button>`;
                     }
 
                     grid.innerHTML += `
@@ -1643,16 +1650,32 @@
         }
 
         // ---- Soumission vote ----
-        window.submitPoll = async function(pollId, needsRegistration) {
+        window.submitPoll = async function(pollId, needsRegistration, sizeFields = {}) {
             const selected = document.querySelector(`input[name="poll_${pollId}"]:checked`);
             if (!selected) { alert('Choisis une option.'); return; }
 
-            let firstName = '', lastName = '', email = '';
+            let extraData = {};
             if (needsRegistration) {
-                firstName = document.getElementById(`fn_${pollId}`)?.value.trim();
-                lastName = document.getElementById(`ln_${pollId}`)?.value.trim();
-                email = document.getElementById(`em_${pollId}`)?.value.trim();
+                const firstName = document.getElementById(`fn_${pollId}`)?.value.trim();
+                const lastName  = document.getElementById(`ln_${pollId}`)?.value.trim();
+                const email     = document.getElementById(`em_${pollId}`)?.value.trim();
                 if (!firstName || !lastName || !email) { alert('Merci de remplir tous les champs.'); return; }
+                extraData = { firstName, lastName, email };
+                if (sizeFields.tshirt) {
+                    const v = document.getElementById(`sz_tshirt_${pollId}`)?.value;
+                    if (!v) { alert('Merci d\'indiquer ta taille de t-shirt.'); return; }
+                    extraData.sizeTshirt = v;
+                }
+                if (sizeFields.short) {
+                    const v = document.getElementById(`sz_short_${pollId}`)?.value;
+                    if (!v) { alert('Merci d\'indiquer ta taille de short.'); return; }
+                    extraData.sizeShort = v;
+                }
+                if (sizeFields.shoes) {
+                    const v = document.getElementById(`sz_shoes_${pollId}`)?.value.trim();
+                    if (!v) { alert('Merci d\'indiquer ta pointure.'); return; }
+                    extraData.sizeShoes = v;
+                }
             }
 
             const btn = document.querySelector(`#opts_${pollId} .poll-submit-btn`);
@@ -1662,7 +1685,7 @@
                 await addDoc(collection(db, 'responses'), {
                     pollId,
                     optionId: selected.value,
-                    ...(needsRegistration && { firstName, lastName, email }),
+                    ...extraData,
                     createdAt: serverTimestamp()
                 });
                 // Incrémenter le compteur sur le poll (lisible sans auth)
@@ -1681,7 +1704,8 @@
         };
 
         // ---- Calendrier ----
-        let calYear, calMonth;
+        let calYear = new Date().getFullYear();
+        let calMonth = new Date().getMonth();
         let calEvents = {}; // { 'YYYY-MM-DD': [{pollId, title}] }
 
         async function loadCalendarEvents() {
@@ -1698,6 +1722,12 @@
                 if (!calEvents[key]) calEvents[key] = [];
                 calEvents[key].push({ pollId: d.id, title: p.title });
             });
+
+            if (Object.keys(calEvents).length === 0) {
+                document.querySelector('.calendar-wrap').innerHTML =
+                    `<p style="color:rgba(255,255,255,0.6);text-align:center;padding:20px 0">Aucun évènement prévu pour le moment.</p>`;
+                return;
+            }
             renderCalendar();
         }
 

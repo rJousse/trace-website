@@ -480,6 +480,56 @@
             font-size: 0.95em;
         }
 
+        .size-fields-section {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .size-fields-section.visible { display: block; }
+
+        .size-fields-label {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.78em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .size-checkboxes { display: flex; flex-wrap: wrap; gap: 14px; }
+
+        .size-check-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.88em;
+            cursor: pointer;
+        }
+
+        .size-check-row input[type="checkbox"] {
+            width: 16px; height: 16px;
+            accent-color: white; cursor: pointer;
+        }
+
+        .add-participant-form {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .add-participant-form.visible { display: block; }
+        .add-participant-form h4 { color: white; font-size: 0.95em; margin-bottom: 15px; }
+        .add-participant-form .form-group { margin-bottom: 10px; }
+        .add-participant-form label { color: rgba(255,255,255,0.7); font-size: 0.82em; }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar { display: none; }
@@ -624,6 +674,20 @@
                 <span class="toggle-slider"></span>
             </label>
             <label for="poll-registration">Inscription requise (nom + email)</label>
+        </div>
+        <div class="size-fields-section" id="size-fields-section">
+            <div class="size-fields-label">Champs de taille optionnels</div>
+            <div class="size-checkboxes">
+                <label class="size-check-row">
+                    <input type="checkbox" id="sf-tshirt"> T-shirt
+                </label>
+                <label class="size-check-row">
+                    <input type="checkbox" id="sf-short"> Short
+                </label>
+                <label class="size-check-row">
+                    <input type="checkbox" id="sf-shoes"> Chaussures
+                </label>
+            </div>
         </div>
         <div class="toggle-row">
             <label class="toggle">
@@ -889,6 +953,11 @@ window.removeOption = (i) => {
     renderOptions();
 };
 
+// Afficher les champs de taille si inscription requise
+document.getElementById('poll-registration').addEventListener('change', function() {
+    document.getElementById('size-fields-section').classList.toggle('visible', this.checked);
+});
+
 document.getElementById('btn-add-option').addEventListener('click', () => {
     tempOptions.push({ id: 'opt_' + Date.now() + '_' + tempOptions.length, label: '' });
     renderOptions();
@@ -903,6 +972,10 @@ function openPollModal(p = null) {
     document.getElementById('poll-title').value = p?.title || '';
     document.getElementById('poll-desc').value = p?.description || '';
     document.getElementById('poll-registration').checked = !!p?.requiresRegistration;
+    document.getElementById('size-fields-section').classList.toggle('visible', !!p?.requiresRegistration);
+    document.getElementById('sf-tshirt').checked = !!p?.sizeFields?.tshirt;
+    document.getElementById('sf-short').checked  = !!p?.sizeFields?.short;
+    document.getElementById('sf-shoes').checked  = !!p?.sizeFields?.shoes;
     document.getElementById('poll-published').checked = !!p?.published;
     document.getElementById('poll-closed').checked = !!p?.closed;
     tempOptions = p?.options ? p.options.map(o => ({ ...o })) : [
@@ -934,6 +1007,11 @@ document.getElementById('save-poll').addEventListener('click', async () => {
         date: dateVal ? Timestamp.fromDate(new Date(dateVal)) : null,
         options: options.map(o => ({ id: o.id, label: o.label.trim() })),
         requiresRegistration: document.getElementById('poll-registration').checked,
+        sizeFields: {
+            tshirt: document.getElementById('sf-tshirt').checked,
+            short:  document.getElementById('sf-short').checked,
+            shoes:  document.getElementById('sf-shoes').checked,
+        },
         published: document.getElementById('poll-published').checked,
         closed: document.getElementById('poll-closed').checked,
         updatedAt: serverTimestamp()
@@ -980,8 +1058,8 @@ function populatePollSelect() {
     if (current) sel.value = current;
 }
 
-document.getElementById('poll-select').addEventListener('change', async function() {
-    const pollId = this.value;
+async function loadParticipants() {
+    const pollId = document.getElementById('poll-select').value;
     const content = document.getElementById('participants-content');
     if (!pollId) {
         content.innerHTML = '<p style="color:rgba(255,255,255,0.45);font-size:0.95em">Sélectionne un sondage pour voir les participants.</p>';
@@ -989,40 +1067,119 @@ document.getElementById('poll-select').addEventListener('change', async function
     }
     content.innerHTML = '<p style="color:rgba(255,255,255,0.5)">Chargement...</p>';
     const poll = polls.find(p => p.id === pollId);
+    const sf = poll?.sizeFields || {};
     const snap = await getDocs(query(collection(db, 'responses'), where('pollId', '==', pollId)));
-    const rows = snap.docs.map(d => d.data());
+    const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const addFormHtml = `
+        <div class="add-participant-form visible" id="add-participant-form">
+            <h4>+ Ajouter un participant manuellement</h4>
+            <div class="form-group">
+                <label>Option</label>
+                <select class="form-input" id="ap-option">
+                    ${(poll?.options || []).map(o => `<option value="${o.id}">${o.label}</option>`).join('')}
+                </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-group">
+                    <label>Prénom</label>
+                    <input type="text" class="form-input" id="ap-fn" placeholder="Prénom">
+                </div>
+                <div class="form-group">
+                    <label>Nom</label>
+                    <input type="text" class="form-input" id="ap-ln" placeholder="Nom">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" class="form-input" id="ap-email" placeholder="email@exemple.com">
+            </div>
+            ${sf.tshirt ? `<div class="form-group"><label>Taille t-shirt</label><select class="form-input" id="ap-tshirt"><option value="">—</option>${['XS','S','M','L','XL','XXL'].map(s=>`<option>${s}</option>`).join('')}</select></div>` : ''}
+            ${sf.short  ? `<div class="form-group"><label>Taille short</label><select class="form-input" id="ap-short"><option value="">—</option>${['XS','S','M','L','XL','XXL'].map(s=>`<option>${s}</option>`).join('')}</select></div>` : ''}
+            ${sf.shoes  ? `<div class="form-group"><label>Pointure</label><input type="text" class="form-input" id="ap-shoes" placeholder="ex: 42"></div>` : ''}
+            <div style="display:flex;justify-content:flex-end;margin-top:10px">
+                <button class="btn-save" onclick="addParticipant('${pollId}')">Ajouter</button>
+            </div>
+        </div>`;
+
     if (rows.length === 0) {
-        content.innerHTML = '<p style="color:rgba(255,255,255,0.45)">Aucune réponse pour ce sondage.</p>';
+        content.innerHTML = `<p style="color:rgba(255,255,255,0.45)">Aucune réponse pour ce sondage.</p>${addFormHtml}`;
         return;
     }
+
+    const sizeCols = [
+        sf.tshirt ? '<th>T-shirt</th>' : '',
+        sf.short  ? '<th>Short</th>'   : '',
+        sf.shoes  ? '<th>Pointure</th>': ''
+    ].join('');
+
     content.innerHTML = `
-        <p style="color:rgba(255,255,255,0.6);margin-bottom:14px;font-size:0.9em">${rows.length} réponse(s)</p>
+        <p style="color:rgba(255,255,255,0.6);margin-bottom:14px;font-size:0.9em">${rows.length} participant(s)</p>
         <div class="participants-table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>Prénom</th>
-                        <th>Nom</th>
-                        <th>Email</th>
-                        <th>Réponse</th>
-                        <th>Date</th>
+                        <th>Prénom</th><th>Nom</th><th>Email</th><th>Réponse</th>
+                        ${sizeCols}
+                        <th>Date</th><th></th>
                     </tr>
                 </thead>
                 <tbody>
                     ${rows.map(r => {
                         const option = poll?.options?.find(o => o.id === r.optionId);
+                        const szCells = [
+                            sf.tshirt ? `<td>${r.sizeTshirt || '—'}</td>` : '',
+                            sf.short  ? `<td>${r.sizeShort  || '—'}</td>` : '',
+                            sf.shoes  ? `<td>${r.sizeShoes  || '—'}</td>` : ''
+                        ].join('');
                         return `<tr>
                             <td>${r.firstName || '—'}</td>
-                            <td>${r.lastName || '—'}</td>
-                            <td>${r.email || '—'}</td>
+                            <td>${r.lastName  || '—'}</td>
+                            <td>${r.email     || '—'}</td>
                             <td>${option?.label || r.optionId}</td>
+                            ${szCells}
                             <td>${fmt(r.createdAt)}</td>
+                            <td><button class="btn-icon danger" title="Supprimer" onclick="removeParticipant('${r.id}', '${pollId}')">🗑️</button></td>
                         </tr>`;
                     }).join('')}
                 </tbody>
             </table>
-        </div>`;
-});
+        </div>
+        ${addFormHtml}`;
+}
+
+window.removeParticipant = async (responseId, pollId) => {
+    if (!confirm('Retirer ce participant ?')) return;
+    await deleteDoc(doc(db, 'responses', responseId));
+    await loadParticipants();
+};
+
+window.addParticipant = async (pollId) => {
+    const poll = polls.find(p => p.id === pollId);
+    const sf = poll?.sizeFields || {};
+    const optionId  = document.getElementById('ap-option')?.value;
+    const firstName = document.getElementById('ap-fn')?.value.trim();
+    const lastName  = document.getElementById('ap-ln')?.value.trim();
+    const email     = document.getElementById('ap-email')?.value.trim();
+    if (!optionId) { alert('Sélectionne une option.'); return; }
+
+    const data = { pollId, optionId, firstName, lastName, email, createdAt: serverTimestamp() };
+    if (sf.tshirt) data.sizeTshirt = document.getElementById('ap-tshirt')?.value || '';
+    if (sf.short)  data.sizeShort  = document.getElementById('ap-short')?.value  || '';
+    if (sf.shoes)  data.sizeShoes  = document.getElementById('ap-shoes')?.value.trim() || '';
+
+    const btn = document.querySelector('#add-participant-form .btn-save');
+    if (btn) btn.disabled = true;
+    try {
+        await addDoc(collection(db, 'responses'), data);
+        await loadParticipants();
+    } catch(e) {
+        alert('Erreur : ' + e.message);
+        if (btn) btn.disabled = false;
+    }
+};
+
+document.getElementById('poll-select').addEventListener('change', loadParticipants);
 
 // Close modals on overlay click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
