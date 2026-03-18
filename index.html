@@ -1600,6 +1600,7 @@
 
         // ---- Articles ----
         async function loadArticles() {
+            console.log('[TRC] loadArticles appelé');
             const grid = document.getElementById('articles-grid');
             try {
                 const q = query(
@@ -1637,6 +1638,7 @@
 
         // ---- Sondages ----
         async function loadPolls() {
+            console.log('[TRC] loadPolls appelé');
             const grid = document.getElementById('polls-grid');
             try {
                 const q = query(
@@ -1907,6 +1909,7 @@
         // Exposer au script de navigation (non-module)
         window._loadArticles = loadArticles;
         window._loadPolls    = loadPolls;
+        console.log('[TRC] Module Firebase prêt, fonctions exposées');
 
         loadCalendarEvents();
     </script>
@@ -1935,8 +1938,9 @@
             }
 
             // Charger les données dynamiques
-            if (sectionId === 'actualites' && window._loadArticles) window._loadArticles();
-            if (sectionId === 'sondages'   && window._loadPolls)    window._loadPolls();
+            console.log('[TRC] switchSection:', sectionId, '| _loadPolls:', typeof window._loadPolls, '| _loadArticles:', typeof window._loadArticles);
+            if (sectionId === 'actualites') { if (window._loadArticles) window._loadArticles(); else console.warn('[TRC] _loadArticles non disponible'); }
+            if (sectionId === 'sondages')   { if (window._loadPolls)    window._loadPolls();    else console.warn('[TRC] _loadPolls non disponible'); }
         }
 
         // Navigation depuis la navbar
