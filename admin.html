@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Trace Running Club</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #489046 0%, #7c9681 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* ── Login ── */
+        .login-wrap {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 30px;
+            padding: 50px 45px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+
+        .login-card h1 {
+            color: white;
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .login-card p {
+            color: rgba(255,255,255,0.75);
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            color: rgba(255,255,255,0.85);
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 1em;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .form-input::placeholder { color: rgba(255,255,255,0.45); }
+        .form-input:focus { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.55); }
+
+        .btn-primary {
+            width: 100%;
+            background: rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            padding: 14px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+        }
+
+        .btn-primary:hover { background: rgba(255,255,255,0.35); transform: translateY(-2px); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .error-msg {
+            color: #ffb3b3;
+            font-size: 0.9em;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        /* ── App ── */
+        #app { display: none; min-height: 100vh; }
+
+        .app-header {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding: 16px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .app-header h1 {
+            color: white;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .app-header span {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.85em;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+        .app-layout {
+            display: flex;
+            min-height: calc(100vh - 64px);
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 220px;
+            background: rgba(255,255,255,0.08);
+            border-right: 1px solid rgba(255,255,255,0.15);
+            padding: 25px 15px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            border-radius: 12px;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95em;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-item:hover { background: rgba(255,255,255,0.12); color: white; }
+        .sidebar-item.active { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
+
+        /* ── Main ── */
+        .app-main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+        .panel-header h2 {
+            color: white;
+            font-size: 1.6em;
+            font-weight: 700;
+        }
+
+        .btn-add {
+            background: rgba(255,255,255,0.22);
+            border: 1px solid rgba(255,255,255,0.35);
+            color: white;
+            font-weight: 600;
+            padding: 10px 22px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.2s;
+        }
+
+        .btn-add:hover { background: rgba(255,255,255,0.32); }
+
+        /* ── Cards list ── */
+        .admin-list { display: flex; flex-direction: column; gap: 14px; }
+
+        .admin-list-item {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 16px;
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .admin-list-item-info { flex: 1; min-width: 0; }
+
+        .admin-list-item-title {
+            color: white;
+            font-weight: 600;
+            font-size: 1em;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .admin-list-item-meta {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.82em;
+        }
+
+        .item-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+        .btn-icon {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1em;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover { background: rgba(255,255,255,0.22); }
+        .btn-icon.danger:hover { background: rgba(255,80,80,0.35); }
+
+        .badge {
+            display: inline-block;
+            font-size: 0.72em;
+            font-weight: 600;
+            padding: 2px 9px;
+            border-radius: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .badge.published { background: rgba(100,255,100,0.2); color: #b0ffb0; border: 1px solid rgba(100,255,100,0.3); }
+        .badge.draft { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.15); }
+        .badge.closed { background: rgba(255,150,50,0.25); color: #ffd0a0; border: 1px solid rgba(255,150,50,0.35); }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 30px 15px;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: #2d4a2d;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 24px;
+            padding: 35px 40px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            animation: slideUp 0.25s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal h3 {
+            color: white;
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 25px;
+        }
+
+        .modal .form-group label { color: rgba(255,255,255,0.8); }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .btn-cancel {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.7);
+            padding: 11px 22px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover { background: rgba(255,255,255,0.18); color: white; }
+
+        .btn-save {
+            background: rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            font-weight: 600;
+            padding: 11px 26px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.2s;
+        }
+
+        .btn-save:hover { background: rgba(255,255,255,0.35); }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .toggle-row label { color: rgba(255,255,255,0.85); font-size: 0.9em; }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toggle input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 24px;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid rgba(255,255,255,0.25);
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 2px;
+            top: 2px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle input:checked + .toggle-slider { background: rgba(100,220,100,0.5); }
+        .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+        /* Options de sondage */
+        .options-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+
+        .option-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .option-row .form-input { flex: 1; }
+
+        .btn-remove-option {
+            background: rgba(255,80,80,0.2);
+            border: 1px solid rgba(255,80,80,0.3);
+            color: #ffb3b3;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .btn-remove-option:hover { background: rgba(255,80,80,0.35); }
+
+        .btn-add-option {
+            background: none;
+            border: 1px dashed rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.6);
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.88em;
+            transition: all 0.2s;
+        }
+
+        .btn-add-option:hover { border-color: rgba(255,255,255,0.5); color: white; }
+
+        /* Participants tab */
+        .poll-selector {
+            margin-bottom: 20px;
+        }
+
+        .participants-table-wrap {
+            overflow-x: auto;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 16px;
+            text-align: left;
+        }
+
+        td {
+            color: rgba(255,255,255,0.85);
+            padding: 12px 16px;
+            font-size: 0.9em;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        tr:hover td { background: rgba(255,255,255,0.04); }
+
+        .empty-table {
+            text-align: center;
+            color: rgba(255,255,255,0.45);
+            padding: 40px;
+            font-size: 0.95em;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .app-main { padding: 20px 15px; }
+            .modal { padding: 25px 20px; }
+            .panel-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-wrap" id="login-wrap">
+    <div class="login-card">
+        <h1>Administration</h1>
+        <p>Trace Running Club</p>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="login-email" class="form-input" placeholder="admin@exemple.com">
+        </div>
+        <div class="form-group">
+            <label>Mot de passe</label>
+            <input type="password" id="login-password" class="form-input" placeholder="••••••••">
+        </div>
+        <button class="btn-primary" id="login-btn">Se connecter</button>
+        <p class="error-msg" id="login-error"></p>
+    </div>
+</div>
+
+<!-- App -->
+<div id="app">
+    <header class="app-header">
+        <h1>🏃 Trace Admin</h1>
+        <span id="admin-email"></span>
+        <button class="btn-logout" id="logout-btn">Déconnexion</button>
+    </header>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-item active" data-tab="articles">📰 Articles</div>
+            <div class="sidebar-item" data-tab="polls">📊 Sondages</div>
+            <div class="sidebar-item" data-tab="participants">👥 Participants</div>
+        </aside>
+        <main class="app-main">
+
+            <!-- Articles -->
+            <div class="tab-panel active" id="tab-articles">
+                <div class="panel-header">
+                    <h2>Articles</h2>
+                    <button class="btn-add" id="btn-new-article">+ Nouvel article</button>
+                </div>
+                <div class="admin-list" id="articles-list"><p style="color:rgba(255,255,255,0.5)">Chargement...</p></div>
+            </div>
+
+            <!-- Sondages -->
+            <div class="tab-panel" id="tab-polls">
+                <div class="panel-header">
+                    <h2>Sondages</h2>
+                    <button class="btn-add" id="btn-new-poll">+ Nouveau sondage</button>
+                </div>
+                <div class="admin-list" id="polls-list"><p style="color:rgba(255,255,255,0.5)">Chargement...</p></div>
+            </div>
+
+            <!-- Participants -->
+            <div class="tab-panel" id="tab-participants">
+                <div class="panel-header">
+                    <h2>Participants</h2>
+                </div>
+                <div class="poll-selector">
+                    <select class="form-input" id="poll-select" style="max-width:400px">
+                        <option value="">Sélectionner un sondage...</option>
+                    </select>
+                </div>
+                <div id="participants-content">
+                    <p style="color:rgba(255,255,255,0.45);font-size:0.95em">Sélectionne un sondage pour voir les participants.</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- Modal Article -->
+<div class="modal-overlay" id="modal-article">
+    <div class="modal">
+        <h3 id="modal-article-title">Nouvel article</h3>
+        <input type="hidden" id="article-id">
+        <div class="form-group">
+            <label>Titre *</label>
+            <input type="text" id="article-title" class="form-input" placeholder="Titre de l'article">
+        </div>
+        <div class="form-group">
+            <label>Description *</label>
+            <textarea id="article-desc" class="form-input" placeholder="Contenu / description"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Date de l'évènement</label>
+            <input type="date" id="article-date" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Photos (URLs, une par ligne)</label>
+            <textarea id="article-photos" class="form-input" placeholder="https://..." style="min-height:70px"></textarea>
+        </div>
+        <div class="toggle-row">
+            <label class="toggle">
+                <input type="checkbox" id="article-published">
+                <span class="toggle-slider"></span>
+            </label>
+            <label for="article-published">Publié</label>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" id="cancel-article">Annuler</button>
+            <button class="btn-save" id="save-article">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sondage -->
+<div class="modal-overlay" id="modal-poll">
+    <div class="modal">
+        <h3 id="modal-poll-title">Nouveau sondage</h3>
+        <input type="hidden" id="poll-id">
+        <div class="form-group">
+            <label>Titre *</label>
+            <input type="text" id="poll-title" class="form-input" placeholder="Question ou intitulé du sondage">
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <textarea id="poll-desc" class="form-input" placeholder="Détails supplémentaires"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Options *</label>
+            <div class="options-list" id="options-list"></div>
+            <button class="btn-add-option" id="btn-add-option">+ Ajouter une option</button>
+        </div>
+        <div class="toggle-row">
+            <label class="toggle">
+                <input type="checkbox" id="poll-registration">
+                <span class="toggle-slider"></span>
+            </label>
+            <label for="poll-registration">Inscription requise (nom + email)</label>
+        </div>
+        <div class="toggle-row">
+            <label class="toggle">
+                <input type="checkbox" id="poll-published">
+                <span class="toggle-slider"></span>
+            </label>
+            <label for="poll-published">Publié</label>
+        </div>
+        <div class="toggle-row">
+            <label class="toggle">
+                <input type="checkbox" id="poll-closed">
+                <span class="toggle-slider"></span>
+            </label>
+            <label for="poll-closed">Fermé (plus de votes)</label>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" id="cancel-poll">Annuler</button>
+            <button class="btn-save" id="save-poll">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, doc, getDocs, addDoc, setDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB-d2T6DGWVu9vkJhciHAqfCYHXeLPHE58",
+    authDomain: "trace-running-club.firebaseapp.com",
+    projectId: "trace-running-club",
+    storageBucket: "trace-running-club.firebasestorage.app",
+    messagingSenderId: "277171805036",
+    appId: "1:277171805036:web:cc1810775ecd50a677b149"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// ── Auth ──
+onAuthStateChanged(auth, user => {
+    if (user) {
+        document.getElementById('login-wrap').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        document.getElementById('admin-email').textContent = user.email;
+        loadArticles();
+        loadPolls();
+    } else {
+        document.getElementById('login-wrap').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+    }
+});
+
+document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const pwd = document.getElementById('login-password').value;
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+    btn.disabled = true;
+    btn.textContent = 'Connexion...';
+    err.textContent = '';
+    try {
+        await signInWithEmailAndPassword(auth, email, pwd);
+    } catch (e) {
+        err.textContent = 'Email ou mot de passe incorrect.';
+        btn.disabled = false;
+        btn.textContent = 'Se connecter';
+    }
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+
+// ── Tabs ──
+document.querySelectorAll('.sidebar-item').forEach(item => {
+    item.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById('tab-' + item.dataset.tab).classList.add('active');
+    });
+});
+
+// ── Helpers ──
+function fmt(ts) {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ══════════════════════════════
+//  ARTICLES
+// ══════════════════════════════
+let articles = [];
+
+async function loadArticles() {
+    const list = document.getElementById('articles-list');
+    const q = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    articles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderArticles();
+    // Sync poll-select too
+    populatePollSelect();
+}
+
+function renderArticles() {
+    const list = document.getElementById('articles-list');
+    if (articles.length === 0) {
+        list.innerHTML = '<p style="color:rgba(255,255,255,0.45);font-size:0.95em">Aucun article. Crée le premier !</p>';
+        return;
+    }
+    list.innerHTML = articles.map(a => `
+        <div class="admin-list-item">
+            <div class="admin-list-item-info">
+                <div class="admin-list-item-title">
+                    ${a.title}
+                    <span class="badge ${a.published ? 'published' : 'draft'}">${a.published ? 'Publié' : 'Brouillon'}</span>
+                </div>
+                <div class="admin-list-item-meta">${a.date ? fmt(a.date) : 'Sans date'} · créé le ${fmt(a.createdAt)}</div>
+            </div>
+            <div class="item-actions">
+                <button class="btn-icon" title="Modifier" onclick="editArticle('${a.id}')">✏️</button>
+                <button class="btn-icon danger" title="Supprimer" onclick="deleteArticle('${a.id}')">🗑️</button>
+            </div>
+        </div>`).join('');
+}
+
+// Open modal
+document.getElementById('btn-new-article').addEventListener('click', () => openArticleModal());
+
+window.editArticle = (id) => {
+    const a = articles.find(x => x.id === id);
+    if (!a) return;
+    document.getElementById('article-id').value = id;
+    document.getElementById('modal-article-title').textContent = 'Modifier l\'article';
+    document.getElementById('article-title').value = a.title || '';
+    document.getElementById('article-desc').value = a.description || '';
+    document.getElementById('article-date').value = a.date ? new Date(a.date.toDate ? a.date.toDate() : a.date).toISOString().split('T')[0] : '';
+    document.getElementById('article-photos').value = (a.photos || []).join('\n');
+    document.getElementById('article-published').checked = !!a.published;
+    document.getElementById('modal-article').classList.add('open');
+};
+
+function openArticleModal() {
+    document.getElementById('article-id').value = '';
+    document.getElementById('modal-article-title').textContent = 'Nouvel article';
+    document.getElementById('article-title').value = '';
+    document.getElementById('article-desc').value = '';
+    document.getElementById('article-date').value = '';
+    document.getElementById('article-photos').value = '';
+    document.getElementById('article-published').checked = false;
+    document.getElementById('modal-article').classList.add('open');
+}
+
+document.getElementById('cancel-article').addEventListener('click', () => document.getElementById('modal-article').classList.remove('open'));
+
+document.getElementById('save-article').addEventListener('click', async () => {
+    const title = document.getElementById('article-title').value.trim();
+    const description = document.getElementById('article-desc').value.trim();
+    if (!title || !description) { alert('Titre et description requis.'); return; }
+
+    const dateVal = document.getElementById('article-date').value;
+    const photos = document.getElementById('article-photos').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const published = document.getElementById('article-published').checked;
+    const id = document.getElementById('article-id').value;
+
+    const data = {
+        title, description,
+        date: dateVal ? Timestamp.fromDate(new Date(dateVal)) : null,
+        photos, published,
+        updatedAt: serverTimestamp()
+    };
+
+    const btn = document.getElementById('save-article');
+    btn.disabled = true;
+    try {
+        if (id) {
+            await setDoc(doc(db, 'articles', id), data, { merge: true });
+        } else {
+            await addDoc(collection(db, 'articles'), { ...data, createdAt: serverTimestamp() });
+        }
+        document.getElementById('modal-article').classList.remove('open');
+        await loadArticles();
+    } catch (e) {
+        alert('Erreur : ' + e.message);
+    }
+    btn.disabled = false;
+});
+
+window.deleteArticle = async (id) => {
+    if (!confirm('Supprimer cet article ?')) return;
+    await deleteDoc(doc(db, 'articles', id));
+    await loadArticles();
+};
+
+// ══════════════════════════════
+//  POLLS
+// ══════════════════════════════
+let polls = [];
+
+async function loadPolls() {
+    const q = query(collection(db, 'polls'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    polls = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderPolls();
+    populatePollSelect();
+}
+
+function renderPolls() {
+    const list = document.getElementById('polls-list');
+    if (polls.length === 0) {
+        list.innerHTML = '<p style="color:rgba(255,255,255,0.45);font-size:0.95em">Aucun sondage. Crée le premier !</p>';
+        return;
+    }
+    list.innerHTML = polls.map(p => {
+        const status = p.closed ? 'closed' : (p.published ? 'published' : 'draft');
+        const label = p.closed ? 'Fermé' : (p.published ? 'Publié' : 'Brouillon');
+        return `
+        <div class="admin-list-item">
+            <div class="admin-list-item-info">
+                <div class="admin-list-item-title">
+                    ${p.title}
+                    <span class="badge ${status}">${label}</span>
+                </div>
+                <div class="admin-list-item-meta">${p.options?.length || 0} option(s) · ${p.requiresRegistration ? 'Inscription requise' : 'Vote libre'}</div>
+            </div>
+            <div class="item-actions">
+                <button class="btn-icon" title="Modifier" onclick="editPoll('${p.id}')">✏️</button>
+                <button class="btn-icon danger" title="Supprimer" onclick="deletePoll('${p.id}')">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Options UI
+let tempOptions = [];
+
+function renderOptions() {
+    const list = document.getElementById('options-list');
+    list.innerHTML = tempOptions.map((o, i) => `
+        <div class="option-row">
+            <input type="text" class="form-input" value="${o.label}" placeholder="Option ${i+1}"
+                oninput="tempOptions[${i}].label = this.value">
+            <button class="btn-remove-option" onclick="removeOption(${i})">×</button>
+        </div>`).join('');
+}
+
+window.removeOption = (i) => { tempOptions.splice(i, 1); renderOptions(); };
+
+document.getElementById('btn-add-option').addEventListener('click', () => {
+    tempOptions.push({ id: 'opt_' + Date.now() + '_' + tempOptions.length, label: '' });
+    renderOptions();
+});
+
+document.getElementById('btn-new-poll').addEventListener('click', () => openPollModal());
+
+function openPollModal(p = null) {
+    document.getElementById('poll-id').value = p?.id || '';
+    document.getElementById('modal-poll-title').textContent = p ? 'Modifier le sondage' : 'Nouveau sondage';
+    document.getElementById('poll-title').value = p?.title || '';
+    document.getElementById('poll-desc').value = p?.description || '';
+    document.getElementById('poll-registration').checked = !!p?.requiresRegistration;
+    document.getElementById('poll-published').checked = !!p?.published;
+    document.getElementById('poll-closed').checked = !!p?.closed;
+    tempOptions = p?.options ? p.options.map(o => ({ ...o })) : [
+        { id: 'opt_a', label: '' },
+        { id: 'opt_b', label: '' }
+    ];
+    renderOptions();
+    document.getElementById('modal-poll').classList.add('open');
+}
+
+window.editPoll = (id) => {
+    const p = polls.find(x => x.id === id);
+    if (p) openPollModal(p);
+};
+
+document.getElementById('cancel-poll').addEventListener('click', () => document.getElementById('modal-poll').classList.remove('open'));
+
+document.getElementById('save-poll').addEventListener('click', async () => {
+    const title = document.getElementById('poll-title').value.trim();
+    if (!title) { alert('Titre requis.'); return; }
+    const options = tempOptions.filter(o => o.label.trim());
+    if (options.length < 2) { alert('Au moins 2 options requises.'); return; }
+
+    const id = document.getElementById('poll-id').value;
+    const data = {
+        title,
+        description: document.getElementById('poll-desc').value.trim(),
+        options: options.map(o => ({ id: o.id, label: o.label.trim() })),
+        requiresRegistration: document.getElementById('poll-registration').checked,
+        published: document.getElementById('poll-published').checked,
+        closed: document.getElementById('poll-closed').checked,
+        updatedAt: serverTimestamp()
+    };
+
+    const btn = document.getElementById('save-poll');
+    btn.disabled = true;
+    try {
+        if (id) {
+            await setDoc(doc(db, 'polls', id), data, { merge: true });
+        } else {
+            await addDoc(collection(db, 'polls'), { ...data, createdAt: serverTimestamp() });
+        }
+        document.getElementById('modal-poll').classList.remove('open');
+        await loadPolls();
+    } catch (e) {
+        alert('Erreur : ' + e.message);
+    }
+    btn.disabled = false;
+});
+
+window.deletePoll = async (id) => {
+    if (!confirm('Supprimer ce sondage et toutes ses réponses ?')) return;
+    // Delete responses
+    const rSnap = await getDocs(query(collection(db, 'responses'), where('pollId', '==', id)));
+    await Promise.all(rSnap.docs.map(d => deleteDoc(d.ref)));
+    await deleteDoc(doc(db, 'polls', id));
+    await loadPolls();
+};
+
+// ══════════════════════════════
+//  PARTICIPANTS
+// ══════════════════════════════
+function populatePollSelect() {
+    const sel = document.getElementById('poll-select');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Sélectionner un sondage...</option>';
+    polls.filter(p => p.requiresRegistration).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.title;
+        sel.appendChild(opt);
+    });
+    if (current) sel.value = current;
+}
+
+document.getElementById('poll-select').addEventListener('change', async function() {
+    const pollId = this.value;
+    const content = document.getElementById('participants-content');
+    if (!pollId) {
+        content.innerHTML = '<p style="color:rgba(255,255,255,0.45);font-size:0.95em">Sélectionne un sondage pour voir les participants.</p>';
+        return;
+    }
+    content.innerHTML = '<p style="color:rgba(255,255,255,0.5)">Chargement...</p>';
+    const poll = polls.find(p => p.id === pollId);
+    const snap = await getDocs(query(collection(db, 'responses'), where('pollId', '==', pollId)));
+    const rows = snap.docs.map(d => d.data());
+    if (rows.length === 0) {
+        content.innerHTML = '<p style="color:rgba(255,255,255,0.45)">Aucune réponse pour ce sondage.</p>';
+        return;
+    }
+    content.innerHTML = `
+        <p style="color:rgba(255,255,255,0.6);margin-bottom:14px;font-size:0.9em">${rows.length} réponse(s)</p>
+        <div class="participants-table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Prénom</th>
+                        <th>Nom</th>
+                        <th>Email</th>
+                        <th>Réponse</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(r => {
+                        const option = poll?.options?.find(o => o.id === r.optionId);
+                        return `<tr>
+                            <td>${r.firstName || '—'}</td>
+                            <td>${r.lastName || '—'}</td>
+                            <td>${r.email || '—'}</td>
+                            <td>${option?.label || r.optionId}</td>
+                            <td>${fmt(r.createdAt)}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>`;
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+        if (e.target === overlay) overlay.classList.remove('open');
+    });
+});
+</script>
+</body>
+</html>

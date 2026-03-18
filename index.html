@@ -306,6 +306,8 @@
         }
 
         #projets.active~.back-button,
+        #actualites.active~.back-button,
+        #sondages.active~.back-button,
         #mediakit.active~.back-button,
         #contact.active~.back-button {
             opacity: 1;
@@ -716,6 +718,276 @@
             }
         }
 
+        /* Articles */
+        .articles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .article-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .article-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.15);
+        }
+
+        .article-card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .article-card-image-placeholder {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #489046 0%, #7c9681 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+        }
+
+        .article-card-body {
+            padding: 20px 22px 22px;
+        }
+
+        .article-card-date {
+            font-size: 0.8em;
+            color: #7c9681;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .article-card-title {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+
+        .article-card-desc {
+            font-size: 0.95em;
+            color: #555;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.1em;
+        }
+
+        .empty-state .empty-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        /* Sondages */
+        .polls-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .poll-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 35px 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .poll-card-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .poll-card-desc {
+            color: rgba(255,255,255,0.85);
+            font-size: 1em;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .poll-badge {
+            display: inline-block;
+            font-size: 0.75em;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .poll-badge.registration {
+            background: rgba(255,200,100,0.3);
+            color: #ffe099;
+            border: 1px solid rgba(255,200,100,0.4);
+        }
+
+        .poll-badge.vote {
+            background: rgba(150,255,150,0.2);
+            color: #b8ffb8;
+            border: 1px solid rgba(150,255,150,0.3);
+        }
+
+        .poll-badge.closed {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.5);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .poll-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .poll-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .poll-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: white;
+            cursor: pointer;
+        }
+
+        .poll-option-label {
+            color: white;
+            font-size: 1em;
+        }
+
+        .poll-result-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .poll-result-label {
+            color: white;
+            font-size: 0.95em;
+            min-width: 120px;
+        }
+
+        .poll-result-bar {
+            flex: 1;
+            height: 10px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .poll-result-fill {
+            height: 100%;
+            background: rgba(255,255,255,0.7);
+            border-radius: 5px;
+            transition: width 0.6s ease;
+        }
+
+        .poll-result-count {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85em;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .poll-registration-fields {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .poll-registration-fields.visible {
+            display: flex;
+        }
+
+        .poll-input {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 0.95em;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .poll-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .poll-input:focus {
+            background: rgba(255,255,255,0.22);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .poll-submit-btn {
+            display: inline-block;
+            background: rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            padding: 14px 30px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .poll-submit-btn:hover {
+            background: rgba(255,255,255,0.35);
+            transform: translateY(-2px);
+        }
+
+        .poll-submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .poll-voted-msg {
+            color: rgba(255,255,255,0.85);
+            font-size: 0.95em;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             nav {
@@ -869,6 +1141,8 @@
             <ul>
                 <li><a href="#accueil" class="nav-link active" data-section="accueil">Accueil</a></li>
                 <li><a href="#projets" class="nav-link" data-section="projets">Projets</a></li>
+                <li><a href="#actualites" class="nav-link" data-section="actualites">Actu</a></li>
+                <li><a href="#sondages" class="nav-link" data-section="sondages">Sondages</a></li>
                 <li><a href="#mediakit" class="nav-link" data-section="mediakit">Kit Media</a></li>
                 <li><a href="#contact" class="nav-link" data-section="contact">Contact</a></li>
             </ul>
@@ -992,6 +1266,34 @@
                 </div>
             </section>
 
+            <!-- Section Actualités -->
+            <section id="actualites" class="section">
+                <div class="section-header">
+                    <h1>Actualités</h1>
+                    <p>Les dernières nouvelles du club</p>
+                </div>
+                <div class="articles-grid" id="articles-grid">
+                    <div class="empty-state">
+                        <span class="empty-icon">📰</span>
+                        Chargement des articles...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section Sondages -->
+            <section id="sondages" class="section">
+                <div class="section-header">
+                    <h1>Sondages</h1>
+                    <p>Participe aux prochains évènements du club</p>
+                </div>
+                <div class="polls-grid" id="polls-grid">
+                    <div class="empty-state">
+                        <span class="empty-icon">📊</span>
+                        Chargement des sondages...
+                    </div>
+                </div>
+            </section>
+
             <!-- Section Product -->
             <section id="mediakit" class="section">
                 <div class="section-header">
@@ -1052,6 +1354,187 @@
         <button class="photo-modal-nav next" onclick="navigateModal(1)">›</button>
         <img src="" alt="" id="modalImage">
     </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+        import { getFirestore, collection, query, where, orderBy, getDocs, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-d2T6DGWVu9vkJhciHAqfCYHXeLPHE58",
+            authDomain: "trace-running-club.firebaseapp.com",
+            projectId: "trace-running-club",
+            storageBucket: "trace-running-club.firebasestorage.app",
+            messagingSenderId: "277171805036",
+            appId: "1:277171805036:web:cc1810775ecd50a677b149"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // ---- Articles ----
+        async function loadArticles() {
+            const grid = document.getElementById('articles-grid');
+            try {
+                const q = query(
+                    collection(db, 'articles'),
+                    where('published', '==', true),
+                    orderBy('date', 'desc')
+                );
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    grid.innerHTML = `<div class="empty-state"><span class="empty-icon">📰</span>Aucun article pour le moment.</div>`;
+                    return;
+                }
+                grid.innerHTML = '';
+                snap.forEach(doc => {
+                    const a = doc.data();
+                    const date = a.date?.toDate ? a.date.toDate().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+                    const imgHtml = a.photos && a.photos.length > 0
+                        ? `<img class="article-card-image" src="${a.photos[0]}" alt="${a.title}">`
+                        : `<div class="article-card-image-placeholder">📸</div>`;
+                    grid.innerHTML += `
+                        <div class="article-card">
+                            ${imgHtml}
+                            <div class="article-card-body">
+                                ${date ? `<div class="article-card-date">${date}</div>` : ''}
+                                <div class="article-card-title">${a.title}</div>
+                                <div class="article-card-desc">${a.description}</div>
+                            </div>
+                        </div>`;
+                });
+            } catch (e) {
+                console.error('Erreur chargement articles', e);
+                grid.innerHTML = `<div class="empty-state"><span class="empty-icon">⚠️</span>Erreur de chargement.</div>`;
+            }
+        }
+
+        // ---- Sondages ----
+        async function loadPolls() {
+            const grid = document.getElementById('polls-grid');
+            try {
+                const q = query(
+                    collection(db, 'polls'),
+                    where('published', '==', true),
+                    orderBy('createdAt', 'desc')
+                );
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    grid.innerHTML = `<div class="empty-state"><span class="empty-icon">📊</span>Aucun sondage actif pour le moment.</div>`;
+                    return;
+                }
+                grid.innerHTML = '';
+                const voted = JSON.parse(localStorage.getItem('trc_voted') || '{}');
+
+                for (const docSnap of snap.docs) {
+                    const p = docSnap.data();
+                    const pollId = docSnap.id;
+                    const closed = p.closed === true;
+                    const needsRegistration = p.requiresRegistration === true;
+                    const hasVoted = !!voted[pollId];
+
+                    // Compter les votes par option
+                    const counts = {};
+                    p.options.forEach(o => counts[o.id] = 0);
+                    const rSnap = await getDocs(query(collection(db, 'responses'), where('pollId', '==', pollId)));
+                    let total = 0;
+                    rSnap.forEach(r => { const d = r.data(); if (counts[d.optionId] !== undefined) { counts[d.optionId]++; total++; } });
+
+                    let badgeClass = closed ? 'closed' : (needsRegistration ? 'registration' : 'vote');
+                    let badgeLabel = closed ? 'Fermé' : (needsRegistration ? 'Inscription requise' : 'Vote libre');
+
+                    let optionsHtml = '';
+                    if (closed || hasVoted) {
+                        p.options.forEach(o => {
+                            const cnt = counts[o.id] || 0;
+                            const pct = total > 0 ? Math.round(cnt / total * 100) : 0;
+                            optionsHtml += `
+                                <div class="poll-result-bar-wrap">
+                                    <span class="poll-result-label">${o.label}</span>
+                                    <div class="poll-result-bar"><div class="poll-result-fill" style="width:${pct}%"></div></div>
+                                    <span class="poll-result-count">${cnt}</span>
+                                </div>`;
+                        });
+                        optionsHtml += `<p class="poll-voted-msg">${hasVoted ? 'Tu as déjà voté.' : ''} ${total} vote${total > 1 ? 's' : ''} au total.</p>`;
+                    } else {
+                        p.options.forEach(o => {
+                            optionsHtml += `
+                                <label class="poll-option">
+                                    <input type="radio" name="poll_${pollId}" value="${o.id}">
+                                    <span class="poll-option-label">${o.label}</span>
+                                </label>`;
+                        });
+
+                        const regFields = needsRegistration ? `
+                            <div class="poll-registration-fields visible" id="reg_${pollId}">
+                                <input class="poll-input" id="fn_${pollId}" type="text" placeholder="Prénom *" required>
+                                <input class="poll-input" id="ln_${pollId}" type="text" placeholder="Nom *" required>
+                                <input class="poll-input" id="em_${pollId}" type="email" placeholder="Email *" required>
+                            </div>` : '';
+
+                        optionsHtml += regFields;
+                        optionsHtml += `<button class="poll-submit-btn" onclick="submitPoll('${pollId}', ${needsRegistration})">Voter</button>`;
+                    }
+
+                    grid.innerHTML += `
+                        <div class="poll-card">
+                            <span class="poll-badge ${badgeClass}">${badgeLabel}</span>
+                            <div class="poll-card-title">${p.title}</div>
+                            ${p.description ? `<div class="poll-card-desc">${p.description}</div>` : ''}
+                            <div class="poll-options" id="opts_${pollId}">${optionsHtml}</div>
+                        </div>`;
+                }
+            } catch (e) {
+                console.error('Erreur chargement sondages', e);
+                grid.innerHTML = `<div class="empty-state"><span class="empty-icon">⚠️</span>Erreur de chargement.</div>`;
+            }
+        }
+
+        // ---- Soumission vote ----
+        window.submitPoll = async function(pollId, needsRegistration) {
+            const selected = document.querySelector(`input[name="poll_${pollId}"]:checked`);
+            if (!selected) { alert('Choisis une option.'); return; }
+
+            let firstName = '', lastName = '', email = '';
+            if (needsRegistration) {
+                firstName = document.getElementById(`fn_${pollId}`)?.value.trim();
+                lastName = document.getElementById(`ln_${pollId}`)?.value.trim();
+                email = document.getElementById(`em_${pollId}`)?.value.trim();
+                if (!firstName || !lastName || !email) { alert('Merci de remplir tous les champs.'); return; }
+            }
+
+            const btn = document.querySelector(`#opts_${pollId} .poll-submit-btn`);
+            if (btn) { btn.disabled = true; btn.textContent = 'Envoi...'; }
+
+            try {
+                await addDoc(collection(db, 'responses'), {
+                    pollId,
+                    optionId: selected.value,
+                    ...(needsRegistration && { firstName, lastName, email }),
+                    createdAt: serverTimestamp()
+                });
+                const voted = JSON.parse(localStorage.getItem('trc_voted') || '{}');
+                voted[pollId] = true;
+                localStorage.setItem('trc_voted', JSON.stringify(voted));
+                loadPolls();
+            } catch (e) {
+                console.error('Erreur vote', e);
+                alert('Une erreur est survenue.');
+                if (btn) { btn.disabled = false; btn.textContent = 'Voter'; }
+            }
+        };
+
+        // Charger au changement de section
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    const s = link.getAttribute('data-section');
+                    if (s === 'actualites') loadArticles();
+                    if (s === 'sondages') loadPolls();
+                });
+            });
+        });
+    </script>
 
     <script>
         // Navigation entre les sections
